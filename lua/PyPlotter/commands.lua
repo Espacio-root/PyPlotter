@@ -7,7 +7,7 @@ function M.setup(opts)
   -- Create global variables
   _G.open_temp_buffer_path = nil
   _G.before = ""
-  _G.after = "\nplt.savefig(\"/tmp/output.png\")"
+  _G.after = ""
 
   -- Create a command to open a temporary buffer
   api.nvim_create_user_command('OpenTempBuffer', function()
@@ -34,7 +34,7 @@ function M.setup(opts)
       callback = function()
         if opts.run_code_on_buf_leave then
           -- Run the Python code in the current buffer
-          vim.cmd('RunPythonCode')
+          vim.cmd('RunPythonCode save')
         end
         if opts.destroy_on_buf_leave then
           -- Delete the buffer
@@ -59,9 +59,15 @@ function M.setup(opts)
     local buf = api.nvim_get_current_buf()
     local lines = api.nvim_buf_get_lines(buf, 0, -1, false)
     local code = table.concat(lines, '\n')
+    local action = opts.args or 'show'
+    if action ~= 'show' and action ~= 'save' then
+      vim.notify('Error: Invalid argument. Use "show" to display the plot or "save" to save it.', vim.log.levels.ERROR)
+      return
+    end
 
     -- Append plt.savefig("/tmp/output.png") to the code
-    code = _G.before .. code .. _G.after
+    local plt_command = action == 'show' and 'plt.show()' or 'plt.savefig("/tmp/output.png")'
+    code = _G.before .. code .. '\n' .. plt_command .. '\n' .. _G.after
 
     -- Write the code to a temporary file
     local temp_file = vim.fn.tempname() .. '.py'
@@ -73,19 +79,23 @@ function M.setup(opts)
     file:write(code)
     file:close()
 
-    -- Run the Python code and generate the graph
-    Job:new({
-      command = "python3",
-      args = { temp_file },
-      on_exit = function(j, return_val)
-        if return_val ~= 0 then
-          vim.notify('Error: Failed to execute Python code.', vim.log.levels.ERROR)
-        else
+  -- Run the Python code and generate the graph
+  Job:new({
+    command = "python3",
+    args = { temp_file },
+    on_exit = function(j, return_val)
+      if return_val ~= 0 then
+        vim.notify('Error: Failed to execute Python code.', vim.log.levels.ERROR)
+      else
+        if action == 'save' then
           vim.notify('Python code executed. Output saved to /tmp/output.png')
+        else
+          vim.notify('Python code executed. Displayed plot with plt.show().')
         end
-      end,
-    }):start()
-  end, { nargs = '?' })
+      end
+    end,
+  }):sync()
+  end, { nargs = 1, complete = function() return { 'show', 'save' } end })
 end
 
 return M

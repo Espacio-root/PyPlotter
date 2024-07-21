@@ -18,7 +18,16 @@ To install PyPlotter, you can use a plugin manager like `packer.nvim` or install
 Add the following to your `packer.nvim` configuration:
 
 ```lua
-use { 'espacio-root/pyplotter' }
+use {
+  'espacio-root/pyplotter',
+  config = function()
+    require('PyPlotter').setup({
+      run_code_on_buf_leave = true,
+      paste_on_buf_leave = true,
+      destroy_on_buf_leave = true,
+    })
+  end
+}
 ```
 
 ### Using `lazy`
@@ -26,7 +35,17 @@ use { 'espacio-root/pyplotter' }
 Add the following to your `lazy` configuration:
 
 ```lua
-{ 'espacio-root/pyplotter' }
+{
+  'espacio-root/pyplotter',
+  config = function()
+    require('PyPlotter').setup({
+      run_code_on_buf_leave = true,
+      paste_on_buf_leave = true,
+      destroy_on_buf_leave = true,
+    })
+  end
+}
+```
 
 
 ## Usage
@@ -47,7 +66,5 @@ Run Python Code
 Execute the Python code from the current buffer and save the output plot:
 
 ```vim
-:RunPythonCode [filename.png]
+:RunPythonCode
 ```
-
-filename.png (optional): Provide a custom filename for the output plot. If not specified, a timestamp-based filename will be used.
